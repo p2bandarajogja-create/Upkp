@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="UPKP 2026">
+<meta name="theme-color" content="#0b3d91">
+<title>UPKP 2026</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,system-ui,sans-serif}
+  body{background:#f2f4f8;color:#1c1c1e;padding:env(safe-area-inset-top) 0 80px}
+  header{background:linear-gradient(135deg,#0b3d91,#1e6fd9);color:#fff;padding:24px 18px;border-radius:0 0 22px 22px}
+  header h1{font-size:22px}
+  .count{font-size:40px;font-weight:800;margin-top:8px}
+  .bar{height:10px;background:rgba(255,255,255,.3);border-radius:6px;margin-top:12px;overflow:hidden}
+  .bar div{height:100%;background:#ffd60a;transition:.3s}
+  .wrap{padding:16px}
+  .tabs{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto}
+  .tabs button{flex:1;padding:10px;border:none;border-radius:12px;background:#fff;font-weight:600;white-space:nowrap}
+  .tabs button.on{background:#0b3d91;color:#fff}
+  .card{background:#fff;border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .card.today{border:2px solid #1e6fd9}
+  .card h3{font-size:15px;display:flex;justify-content:space-between}
+  .tag{font-size:11px;padding:3px 8px;border-radius:8px;background:#e8f0fe;color:#0b3d91}
+  label{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:15px}
+  input[type=checkbox]{width:22px;height:22px;accent-color:#1e6fd9}
+  textarea{width:100%;border:1px solid #ddd;border-radius:10px;padding:8px;margin-top:6px;font-size:14px}
+  .timer{text-align:center}
+  .timer .t{font-size:56px;font-weight:800;margin:10px 0}
+  .timer button{padding:12px 22px;border:none;border-radius:12px;margin:4px;font-weight:700;background:#1e6fd9;color:#fff}
+  .done{text-decoration:line-through;color:#8e8e93}
+</style>
+</head>
+<body>
+<header>
+  <h1>📘 Persiapan UPKP 2026</h1>
+  <div class="count" id="count"></div>
+  <div id="ptext" style="font-size:13px;margin-top:6px"></div>
+  <div class="bar"><div id="pbar"></div></div>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <button class="on" data-f="today">Hari Ini</button>
+    <button data-f="1">Putaran 1</button>
+    <button data-f="2">Putaran 2</button>
+    <button data-f="3">Putaran 3</button>
+    <button data-f="timer">⏱ Timer</button>
+  </div>
+  <div id="list"></div>
+</div>
+
+<script>
+const T=["TPA","Etika PNS","Nilai-Nilai Kemenkeu","Pengelolaan Keuangan Negara","Peraturan Kepegawaian","Wawasan Kebangsaan"];
+const EXAM=new Date("2026-11-10T07:00:00");
+const START=new Date("2026-10-13");
+let plan=[];
+// Putaran 1: pendalaman (14 hari)
+T.forEach(t=>{plan.push({c:1,t:[t+" – teori & konsep"],k:["Baca materi","Ringkas poin penting","Latihan 20 soal"]});
+               plan.push({c:1,t:[t+" – latihan"],k:["Latihan 40 soal","Bahas soal salah","Catat kelemahan"]});});
+plan.push({c:1,t:["Tryout 1"],k:["Tryout penuh","Evaluasi skor"]},{c:1,t:["Evaluasi Putaran 1"],k:["Review catatan kelemahan","Istirahat cukup"]});
+// Putaran 2: penguatan (8 hari)
+T.forEach(t=>plan.push({c:2,t:[t+" – review cepat"],k:["Baca ringkasan","Latihan 50 soal","Bahas soal salah"]}));
+plan.push({c:2,t:["Tryout 2"],k:["Tryout penuh","Evaluasi skor"]},{c:2,t:["Perbaikan topik lemah"],k:["Fokus 2 topik terlemah"]});
+// Putaran 3: pemantapan (6 hari)
+[[0,5],[1,2],[3,4]].forEach(p=>plan.push({c:3,t:[T[p[0]]+" + "+T[p[1]]],k:["Review ringkasan","Latihan campuran 60 soal"]}));
+plan.push({c:3,t:["Tryout 3"],k:["Tryout penuh sesuai waktu ujian"]},{c:3,t:["Tryout 4 + evaluasi"],k:["Tryout","Review soal salah"]},{c:3,t:["Review ringan"],k:["Baca ringkasan saja","Siapkan perlengkapan ujian","Tidur lebih awal"]});
+plan.forEach((d,i)=>{const dt=new Date(START);dt.setDate(dt.getDate()+i);d.date=dt;});
+
+const S=JSON.parse(localStorage.getItem("upkp")||"{}");
+const save=()=>localStorage.setItem("upkp",JSON.stringify(S));
+const fmt=d=>d.toLocaleDateString("id-ID",{weekday:"short",day:"numeric",month:"short"});
+const isToday=d=>d.toDateString()===new Date().toDateString();
+let filter="today";
+
+function header(){
+  const days=Math.ceil((EXAM-new Date())/864e5);
+  count.textContent=days>0?days+" hari lagi":"Hari ujian! 💪";
+  let tot=0,ok=0;plan.forEach((d,i)=>d.k.forEach((_,j)=>{tot++;if(S[i+"-"+j])ok++;}));
+  const p=Math.round(ok/tot*100);ptext.textContent=`Progres: ${ok}/${tot} tugas (${p}%)`;pbar.style.width=p+"%";
+}
+function render(){
+  header();
+  if(filter==="timer")return timerUI();
+  let items=plan.map((d,i)=>[d,i]);
+  if(filter==="today"){items=items.filter(([d])=>isToday(d.date));
+    if(!items.length){list.innerHTML='<div class="card">Tidak ada jadwal hari ini. Lihat tab Putaran 🙂</div>';return;}}
+  else items=items.filter(([d])=>d.c==filter);
+  list.innerHTML=items.map(([d,i])=>`
+   <div class="card ${isToday(d.date)?"today":""}">
+    <h3>${fmt(d.date)} <span class="tag">Putaran ${d.c}</span></h3>
+    <p style="margin:6px 0;font-weight:600">${d.t.join(", ")}</p>
+    ${d.k.map((k,j)=>`<label class="${S[i+"-"+j]?"done":""}"><input type="checkbox" data-k="${i}-${j}" ${S[i+"-"+j]?"checked":""}>${k}</label>`).join("")}
+    <textarea data-n="${i}" placeholder="Catatan...">${S["n"+i]||""}</textarea>
+   </div>`).join("");
+}
+list.addEventListener("change",e=>{if(e.target.dataset.k){S[e.target.dataset.k]=e.target.checked;save();render();}});
+list.addEventListener("input",e=>{if(e.target.dataset.n){S["n"+e.target.dataset.n]=e.target.value;save();}});
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("on"));b.classList.add("on");filter=b.dataset.f;render();});
+
+let sec=1500,iv=null;
+function timerUI(){
+  list.innerHTML=`<div class="card timer"><p>Sesi fokus (Pomodoro)</p>
+   <div class="t" id="tt">${String(sec/60|0).padStart(2,"0")}:${String(sec%60).padStart(2,"0")}</div>
+   <button onclick="go()">${iv?"Jeda":"Mulai"}</button><button onclick="rs(1500)">25 mnt</button><button onclick="rs(300)">Istirahat 5</button></div>`;
+}
+function go(){if(iv){clearInterval(iv);iv=null;}else iv=setInterval(()=>{sec--;if(sec<=0){clearInterval(iv);iv=null;sec=0;alert("Waktu habis! ⏰");}if(filter==="timer")timerUI();},1000);timerUI();}
+function rs(s){clearInterval(iv);iv=null;sec=s;timerUI();}
+render();
+</script>
+</body>
+</html>
